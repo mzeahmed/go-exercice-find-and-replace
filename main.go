@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 )
 
-// ProcessLine searches for old in line to replace it by new
-// it returns found=true, if the pattern was found, res withthe resulting string
-// and occ with the number of occurence of old
+// ProcessLine recherche l'ancienne ligne pour la remplacer par le nouveau
+// il renvoie 'found=true', si le motif a été trouvé, 'res' avec la chaîne résultante
+// et 'occ' avec le nombre d'occurrences de l'ancien
 func ProcessLine(line, old, new string) (found bool, res string, occ int) {
 	oldLower := strings.ToLower(old)
 	newLower := strings.ToLower(new)
@@ -24,12 +26,59 @@ func ProcessLine(line, old, new string) (found bool, res string, occ int) {
 	return found, res, occ
 }
 
-func main() {
-	found, res, occ := ProcessLine(
-		"Go was conceived in 2007 to improve programming productivity at Google",
-		"Go",
-		"Pyton",
-	)
+func FindReplaceFile(src string, old string, new string) (occ int, lines []int, err error) {
+	// On ouvre le fichier
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return occ, lines, err
+	}
+	defer srcFile.Close()
 
-	fmt.Println(found, res, occ)
+	// On gere les cas go serait present dans un mot, exemple google
+	old = old + " "
+	new = new + " "
+
+	lineIdx := 1
+	scanner := bufio.NewScanner(srcFile)
+	for scanner.Scan() {
+		found, res, o := ProcessLine(scanner.Text(), old, new)
+
+		// Si on trouve le mot
+		if found {
+			// on augmente le compteur d'occurence global par rappor tà celui qui nous ai renvoyé
+			occ += o
+			lines = append(lines, lineIdx)
+		}
+
+		fmt.Println(res)
+		lineIdx++
+	}
+
+	return occ, lines, nil
+}
+
+func main() {
+	old := "Go"
+	new := "Python"
+
+	occ, lines, err := FindReplaceFile("wikigo.txt", old, new)
+	if err != nil {
+		fmt.Printf("Error while executing find replace: %v \n", err)
+	}
+
+	fmt.Println("== Summary ==")
+	defer fmt.Println(" == End of summarry ==")
+	fmt.Printf("Number of occurences of %v: %v \n", old, occ)
+	fmt.Printf("Number of lines: %d \n", len(lines))
+
+	// On affiche les lignes où les occurrences sont presente
+	fmt.Print("Lines: [ ")
+	len := len(lines)
+	for i, l := range lines {
+		fmt.Printf("%v", l)
+		if i < len-1 {
+			fmt.Printf(" - ")
+		}
+	}
+	fmt.Println(" ]")
 }

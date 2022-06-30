@@ -26,7 +26,7 @@ func ProcessLine(line, old, new string) (found bool, res string, occ int) {
 	return found, res, occ
 }
 
-func FindReplaceFile(src string, old string, new string) (occ int, lines []int, err error) {
+func FindReplaceFile(src string, dst string, old string, new string) (occ int, lines []int, err error) {
 	// On ouvre le fichier
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -34,12 +34,21 @@ func FindReplaceFile(src string, old string, new string) (occ int, lines []int, 
 	}
 	defer srcFile.Close()
 
+	// On créé un nouveau fichier pour l'insertion du nouveau texte
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return occ, lines, err
+	}
+	defer dstFile.Close()
+
 	// On gere les cas go serait present dans un mot, exemple google
 	old = old + " "
 	new = new + " "
 
 	lineIdx := 1
 	scanner := bufio.NewScanner(srcFile)
+	writer := bufio.NewWriter(dstFile)
+	defer writer.Flush()
 	for scanner.Scan() {
 		found, res, o := ProcessLine(scanner.Text(), old, new)
 
@@ -50,7 +59,7 @@ func FindReplaceFile(src string, old string, new string) (occ int, lines []int, 
 			lines = append(lines, lineIdx)
 		}
 
-		fmt.Println(res)
+		fmt.Fprintf(writer, res)
 		lineIdx++
 	}
 
@@ -61,7 +70,7 @@ func main() {
 	old := "Go"
 	new := "Python"
 
-	occ, lines, err := FindReplaceFile("wikigo.txt", old, new)
+	occ, lines, err := FindReplaceFile("wikigo.txt", "wikipyton.txt", old, new)
 	if err != nil {
 		fmt.Printf("Error while executing find replace: %v \n", err)
 	}
